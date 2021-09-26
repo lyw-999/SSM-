@@ -5,21 +5,101 @@ import com.github.pagehelper.PageInfo;
 import com.lyw.bean.Customer;
 import com.lyw.bean.CustomerExample;
 import com.lyw.service.CustomerService;
+import com.lyw.util.AliSMSUtil;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+import redis.clients.jedis.JedisPool;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+
+@CrossOrigin(origins = "*")  // * 代表所有的域名请求
 @RestController
 @RequestMapping("/api/customer")
 public class CustomerController{
 @Autowired(required = false)
 private CustomerService customerService;
+
+@Autowired
+    private  JedisPool jedisPool;
+// 发送验证码
+    @RequestMapping("/sendCodeNum")
+    public Map sendCodeNum(String phoneNum){
+
+        //1.在发送验证码之前  随机创建6个 随机数字的验证码
+       String randomNum = String.valueOf((int)((Math.random()*9+1)*100000));
+       // 1.1 在发送验证码之前 需要向redis中查询 该手机有没有验证码存在 如果存在 就直接从redis中读取 而不是从阿里云再次发送
+        String s = jedisPool.getResource().get(phoneNum);
+        //查询 这个 phoneNum是否存在
+        Map codeMap = new HashMap();
+        Boolean b = jedisPool.getResource().exists(phoneNum);
+        if(b){
+            codeMap.put("code",0);
+            codeMap.put("msg","验证码已经存在，请去短信中查询");
+            return codeMap;
+        }else{
+            //2.接受到前端传过来的 手机号:phoneNum 对其调用阿里云的发送短信的工具类去发送验证码
+            AliSMSUtil.sendMag(phoneNum,randomNum);
+            //3. 发送之后 将手机号当做 redis key 验证码当做 redis value 存入到redis数据库中
+            String setex = jedisPool.getResource().setex(phoneNum, 120, randomNum);
+            System.out.println("setex = " + setex);
+            jedisPool.getResource().persist(phoneNum); // 注意这里设置成-1  在线上环境 要删除！！！
+            //4. 将验证码发给前端
+            if (  "OK".equals(setex)) {
+                codeMap.put("code",0);
+                codeMap.put("msg","发送成功");
+                //   codeMap.put("data",randomNum); 注意 线上不能把验证码通过json数据发送给前端 容易被人恶意利用 验证码只能该手机号看到！
+                return codeMap;
+            }else {
+                codeMap.put("code",500);
+                codeMap.put("msg","发送失败");
+                return codeMap;
+            }
+        }
+
+
+
+    }
+
+// 校验手机号和验证码
+    @RequestMapping("/customerLogin")
+    public Map customerLogin(String phoneNum,String codeNum){
+            // 1.根据前端传来的手机号 和验证码 来和redis 中 的数据对比
+        Map codeMap = new HashMap();
+        String redisCodeNum = jedisPool.getResource().get(phoneNum);  //redis中的验证码
+        if (codeNum.equals(redisCodeNum)) {
+            //登录成功
+            codeMap.put("code",0);
+            codeMap.put("msg","登录成功");
+        }else {
+            //登录失败
+            codeMap.put("code",400);
+            codeMap.put("msg","登录失败");
+        }
+        return codeMap;
+    }
+
+    @RequestMapping("/customerLoginByAxios")  // "/api/customer/customerLoginByAxios"
+    public Map customerLoginByAxios(@RequestBody  Map map ){
+        System.out.println("map = " + map);
+        Map codeMap = new HashMap();
+        // 1. 根据前端 传来的手机号 和 验证码 来和redis 中的数据做对比
+        String redisCodeNum = jedisPool.getResource().get((String) map.get("phoneNum")); // redis中的 验证码
+        if (map.get("codeNum").equals(redisCodeNum)){
+            // 相等, 登录成功
+            codeMap.put("code",0);
+            codeMap.put("msg","登录成功");
+            return codeMap;
+        }else{
+            // 不相等, 登录失败
+            codeMap.put("code",400);
+            codeMap.put("msg","登录失败");
+            return codeMap;
+        }
+    }
+
 
 //增
 // 后端订单增加 -- 针对layui的 针对前端传 json序列化的

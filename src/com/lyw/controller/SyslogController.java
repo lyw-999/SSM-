@@ -2,8 +2,6 @@ package com.lyw.controller;
 
 import com.github.pagehelper.PageHelper;
 import com.github.pagehelper.PageInfo;
-import com.lyw.bean.Syslog;
-import com.lyw.bean.SyslogExample;
 import com.lyw.service.SyslogService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.RequestBody;
