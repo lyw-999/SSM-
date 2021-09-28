@@ -7,6 +7,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Map;
 
 @Service("masterService")
 public class MasterServiceImpl implements MasterService{
@@ -55,6 +56,11 @@ public class MasterServiceImpl implements MasterService{
 	public int updateByPrimaryKey(Master record){
     	return masterDAO.updateByPrimaryKey(record);
     }
+
+	@Override
+	public Map login(String account, String password) {
+		return masterDAO.login(account,password);
+	}
 
 
 }

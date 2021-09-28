@@ -29,5 +29,8 @@ public interface CustomerService {
     int updateByPrimaryKeySelective(Customer record);
 
     int updateByPrimaryKey(Customer record);
+    //  根据经纬度 计算money
+    double getMoney(double gongSiLng, double gongSiLat, double customerLng, double customerLat);
+
 
 }

@@ -21,6 +21,26 @@ public class MasterController{
 @Autowired(required = false)
 private MasterService masterService;
 
+
+// 登录
+@RequestMapping("/login")
+    public Map login(@RequestParam String account,@RequestParam String password){
+    System.out.println("account = " + account);
+
+        Map codeMap = new HashMap();
+        Map login = masterService.login(account, password);
+    System.out.println("password = " + password);
+    String oa =(String) login.get(account);
+    String op =(String) login.get(password);
+    if (oa.equals(account) && op.equals(password) ) {
+        codeMap.put("code",0);
+        codeMap.put("msg","登录成功");
+    }else{
+        codeMap.put("code",400);
+        codeMap.put("msg","登录失败");
+    }
+    return codeMap;
+}
 //增
 // 后端订单增加 -- 针对layui的 针对前端传 json序列化的
 @RequestMapping("/insert")

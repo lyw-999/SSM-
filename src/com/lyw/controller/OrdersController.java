@@ -6,20 +6,29 @@ import com.lyw.bean.Orders;
 import com.lyw.bean.OrdersExample;
 import com.lyw.service.OrdersService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+import redis.clients.jedis.JedisPool;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+@CrossOrigin(origins = "*")
 @RestController
 @RequestMapping("/api/orders")
 public class OrdersController{
 @Autowired(required = false)
 private OrdersService ordersService;
+
+    @RequestMapping("/addOrders")
+    public Map addOrders( String token,String phone){  //   /api/orders/addOrders
+
+        System.out.println("访问成功");
+        System.out.println("token = " + token);
+        System.out.println("phone = " + phone);
+        return null;
+    }
+
 
 //增
 // 后端订单增加 -- 针对layui的 针对前端传 json序列化的

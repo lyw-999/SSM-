@@ -4,12 +4,17 @@ import com.github.pagehelper.PageHelper;
 import com.github.pagehelper.PageInfo;
 import com.lyw.bean.Customer;
 import com.lyw.bean.CustomerExample;
+import com.lyw.bean.dto.CustomerDTO;
 import com.lyw.service.CustomerService;
 import com.lyw.util.AliSMSUtil;
+import com.lyw.util.JwtToToken;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import redis.clients.jedis.JedisPool;
 
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import java.text.DecimalFormat;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -21,19 +26,17 @@ import java.util.Map;
 public class CustomerController{
 @Autowired(required = false)
 private CustomerService customerService;
-
 @Autowired
     private  JedisPool jedisPool;
 // 发送验证码
     @RequestMapping("/sendCodeNum")
     public Map sendCodeNum(String phoneNum){
-
+        Map codeMap = new HashMap();
         //1.在发送验证码之前  随机创建6个 随机数字的验证码
        String randomNum = String.valueOf((int)((Math.random()*9+1)*100000));
        // 1.1 在发送验证码之前 需要向redis中查询 该手机有没有验证码存在 如果存在 就直接从redis中读取 而不是从阿里云再次发送
-        String s = jedisPool.getResource().get(phoneNum);
+
         //查询 这个 phoneNum是否存在
-        Map codeMap = new HashMap();
         Boolean b = jedisPool.getResource().exists(phoneNum);
         if(b){
             codeMap.put("code",0);
@@ -58,21 +61,26 @@ private CustomerService customerService;
                 return codeMap;
             }
         }
-
-
-
     }
 
 // 校验手机号和验证码
     @RequestMapping("/customerLogin")
     public Map customerLogin(String phoneNum,String codeNum){
+        System.out.println("phoneNum = " + phoneNum);
             // 1.根据前端传来的手机号 和验证码 来和redis 中 的数据对比
         Map codeMap = new HashMap();
         String redisCodeNum = jedisPool.getResource().get(phoneNum);  //redis中的验证码
         if (codeNum.equals(redisCodeNum)) {
-            //登录成功
+            //登录成功  需要给顾客返回一个 jwt 同时把这个jwt当做key放入到redis中
+            JwtToToken jwtToToken = new JwtToToken();
+            CustomerDTO jwt = jwtToToken.createJwt(phoneNum);//现在用不到session 前后端分离
+            //  使用jwt 比较容易 很轻松的做出单点登录  基于 jwt+redis 的单点登录
+            //  把token 存入到redis中去
+            jedisPool.getResource().set(phoneNum+"token",jwt.getAccessToken());
+
             codeMap.put("code",0);
             codeMap.put("msg","登录成功");
+            codeMap.put("data",jwt);
         }else {
             //登录失败
             codeMap.put("code",400);
@@ -100,6 +108,51 @@ private CustomerService customerService;
         }
     }
 
+// 计算钱数
+    @RequestMapping("/getMoney")  //  "/api/customer/getMoney"
+    public Map getMoney(double gongSiLng ,double gongSiLat , double customerLng  ,double customerLat){
+           double money =  customerService.getMoney(gongSiLng ,gongSiLat ,customerLng , customerLat);
+           DecimalFormat df = new DecimalFormat("#.##");
+        String format = df.format(money);
+        System.out.println(df.format(money));
+            Map codeMap = new HashMap();
+            codeMap.put("code",0);
+            codeMap.put("msg","数据请求成功");
+            codeMap.put("data",format);
+           return codeMap;
+    }
+//  计算 最优的
+    @RequestMapping("/getYouMoney")  //  "/api/customer/getYouMoney"
+    public Map getYouMoney(@RequestParam(value="dizhi[]") String[] dizhi  , double customerLng  , double customerLat){
+        double mny = 1999999999;
+        String format = "";
+        String jwd = "";
+        for (String s : dizhi) {
+            //  System.out.println("s = " + s);
+            String  jd = s.split(",")[0];
+            String  wd = s.split(",")[1];
+            // System.out.println("jd = " + jd);  //经度
+            // System.out.println("wd = " + wd);  //纬度
+            double money =  customerService.getMoney( Double.parseDouble(jd), Double.parseDouble(wd) ,customerLng , customerLat);
+            // System.out.println("money = " + money);
+            if (money < mny ) {
+                mny = money;
+                System.out.println("mny = " + mny);
+                jwd =s;
+            }
+
+        }
+        DecimalFormat df = new DecimalFormat("#.##");
+        format = df.format(mny);
+        System.out.println(df.format(mny));
+
+        Map codeMap = new HashMap();
+        codeMap.put("code",0);
+        codeMap.put("msg","数据请求成功");
+        codeMap.put("data",format);
+        codeMap.put("url",jwd);
+        return codeMap;
+}
 
 //增
 // 后端订单增加 -- 针对layui的 针对前端传 json序列化的

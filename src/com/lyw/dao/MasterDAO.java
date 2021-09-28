@@ -3,6 +3,8 @@ package com.lyw.dao;
 import com.lyw.bean.Master;
 import com.lyw.bean.MasterExample;
 import java.util.List;
+import java.util.Map;
+
 import org.apache.ibatis.annotations.Param;
 
 public interface MasterDAO {
@@ -27,4 +29,6 @@ public interface MasterDAO {
     int updateByPrimaryKeySelective(Master record);
 
     int updateByPrimaryKey(Master record);
+
+    Map login(String account,String password);
 }

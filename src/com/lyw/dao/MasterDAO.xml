@@ -278,4 +278,8 @@
       del = #{del,jdbcType=CHAR}
     where id = #{id,jdbcType=INTEGER}
   </update>
+
+  <select id="login" resultMap="BaseResultMap" parameterType="map">
+    select * from master where account = #{account} and password = #{password}
+  </select>
 </mapper>

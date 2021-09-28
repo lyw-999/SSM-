@@ -5,6 +5,7 @@ import com.lyw.bean.MasterExample;
 import org.apache.ibatis.annotations.Param;
 
 import java.util.List;
+import java.util.Map;
 
 public interface MasterService {
    
@@ -30,4 +31,5 @@ public interface MasterService {
 
     int updateByPrimaryKey(Master record);
 
+    Map login(String account, String password);
 }
