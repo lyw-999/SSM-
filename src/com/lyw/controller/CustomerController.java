@@ -65,7 +65,7 @@ private CustomerService customerService;
 
 // 校验手机号和验证码
     @RequestMapping("/customerLogin")
-    public Map customerLogin(String phoneNum,String codeNum){
+    public Map customerLogin(String phoneNum,String codeNum,HttpServletResponse response){
         System.out.println("phoneNum = " + phoneNum);
             // 1.根据前端传来的手机号 和验证码 来和redis 中 的数据对比
         Map codeMap = new HashMap();
@@ -81,6 +81,7 @@ private CustomerService customerService;
             codeMap.put("code",0);
             codeMap.put("msg","登录成功");
             codeMap.put("data",jwt);
+            response.setHeader("Access-Control-Expose-Headers","Cache-Control,Content-Type,Expires,Pragma,Content-Language,Last-Modified,token");
         }else {
             //登录失败
             codeMap.put("code",400);
@@ -137,7 +138,7 @@ private CustomerService customerService;
             // System.out.println("money = " + money);
             if (money < mny ) {
                 mny = money;
-                System.out.println("mny = " + mny);
+               // System.out.println("mny = " + mny);
                 jwd =s;
             }
 

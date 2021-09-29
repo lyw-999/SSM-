@@ -7,8 +7,9 @@ import com.lyw.bean.OrdersExample;
 import com.lyw.service.OrdersService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
-import redis.clients.jedis.JedisPool;
 
+import javax.servlet.http.HttpServletRequest;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -21,12 +22,27 @@ public class OrdersController{
 private OrdersService ordersService;
 
     @RequestMapping("/addOrders")
-    public Map addOrders( String token,String phone){  //   /api/orders/addOrders
-
+    public Map addOrders(HttpServletRequest request,Orders orders){  //   /api/orders/addOrders
+        Map codeMap = new HashMap();
         System.out.println("访问成功");
-        System.out.println("token = " + token);
-        System.out.println("phone = " + phone);
-        return null;
+        System.out.println("orders = " + orders);
+        String phoneNum = request.getParameter("phoneNum");
+        System.out.println("phoneNum = " + phoneNum);
+        orders.setPhone(phoneNum);
+        // 调用service 层 做添加
+        orders.setStatus("已接单");
+        orders.setCreatetime(new Date());
+        int i = ordersService.insertSelective(orders);
+        if (i == 1) {
+            codeMap.put("code",0);
+            codeMap.put("msg","你的订单提交已完成.请耐心等待,我们将电话联系您");
+            return codeMap;
+            // 第一次提交完毕 将提交按钮为不可点击状态  并且 提交2字变为 已提交订单 请稍等
+        }else{
+            codeMap.put("code",4000);
+            codeMap.put("msg","由于网络故障,未能添加成功,请在重新提交一次");
+            return codeMap;
+        }
     }
 
 
